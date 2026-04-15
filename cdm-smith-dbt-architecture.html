@@ -847,16 +847,21 @@ body {
       dbt Labs
     </div>
     <div class="header-divider"></div>
-    <div class="header-client">CDM Smith — Architecture Review</div>
+    <div style="display:flex;flex-direction:column;gap:1px;">
+      <div style="font-size:11px;color:var(--slate-400);font-family:var(--font-mono);letter-spacing:0.05em;">PREPARED FOR</div>
+      <div style="font-size:14px;font-weight:500;color:var(--white);">CDM Smith</div>
+    </div>
   </div>
-  <div class="header-badge">CONFIDENTIAL · SOLUTIONS ENGINEERING</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="font-size:11px;color:var(--slate-400);font-family:var(--font-mono);">Sam Clark · Solutions Architecture · April 2026</div>
+    <div class="header-badge">CONFIDENTIAL</div>
+  </div>
 </header>
 
 <nav class="tab-nav">
   <button class="tab-btn active" onclick="showTab('current')">01 · Current State</button>
   <button class="tab-btn" onclick="showTab('dbtcloud')">02 · dbt Cloud Fit</button>
   <button class="tab-btn" onclick="showTab('corecloud')">03 · Core vs Cloud</button>
-  <button class="tab-btn" onclick="showTab('roi')">04 · Business Value</button>
 </nav>
 
 <!-- PAGE 1: CURRENT STATE -->
@@ -892,10 +897,26 @@ body {
 
   <!-- INTERACTIVE ARCHITECTURE DIAGRAM -->
   <div style="background:var(--white);border:1px solid var(--slate-100);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
-      <button id="mode-current" onclick="setArchMode('current',this)" style="font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:none;background:#FF694A;color:#fff;cursor:pointer;">Current state</button>
-      <button id="mode-target" onclick="setArchMode('target',this)" style="font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:0.5px solid var(--slate-200);background:transparent;color:var(--slate-400);cursor:pointer;">Target state</button>
-      <span style="font-size:11px;color:var(--slate-400);margin-left:4px;">Click any node to inspect</span>
+
+    <!-- PROMINENT MODE TOGGLE -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--slate-400);margin-bottom:4px;">Architecture view</div>
+        <div style="font-size:13px;color:var(--slate-500);">Toggle between current pain state and target dbt Cloud state</div>
+      </div>
+      <div style="display:flex;background:var(--slate-100);border-radius:10px;padding:4px;gap:4px;flex-shrink:0;">
+        <button id="mode-current" onclick="setArchMode('current')" style="font-size:13px;font-weight:600;padding:10px 22px;border-radius:7px;border:none;background:#FF694A;color:#fff;cursor:pointer;transition:all .15s;white-space:nowrap;">
+          Current state
+        </button>
+        <button id="mode-target" onclick="setArchMode('target')" style="font-size:13px;font-weight:500;padding:10px 22px;border-radius:7px;border:none;background:transparent;color:var(--slate-400);cursor:pointer;transition:all .15s;white-space:nowrap;">
+          Target state
+        </button>
+      </div>
+    </div>
+    <!-- STATE LABEL -->
+    <div id="arch-state-label" style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding:8px 12px;border-radius:7px;background:#fef2f2;border:0.5px solid #fecaca;">
+      <div style="width:7px;height:7px;border-radius:50%;background:#E24B4A;flex-shrink:0;"></div>
+      <span style="font-size:12px;font-weight:500;color:#991b1b;">Current state — Qlik QVD era. Pain points highlighted. Click any node to inspect.</span>
     </div>
 
     <svg id="arch-svg" width="100%" viewBox="0 0 680 310" role="img" style="display:block;">
@@ -1360,86 +1381,6 @@ body {
   </div>
 </div>
 
-<!-- PAGE 4: ROI -->
-<div id="tab-roi" class="page">
-  <div class="page-header">
-    <div class="page-eyebrow">Page 04 — Business Value</div>
-    <h1 class="page-title">Business value framing for CDM Smith</h1>
-    <p class="page-subtitle">Based on what was shared on the call: ~45 reports, 2–3 year migration, Microsoft-first AI strategy, and a BI team managing both the migration and a forward-looking agentic playbook.</p>
-  </div>
-
-  <div class="roi-grid">
-    <div class="roi-metric">
-      <div class="roi-number">45</div>
-      <div class="roi-label">Reports in scope across manual + Axys-driven migration tracks</div>
-    </div>
-    <div class="roi-metric">
-      <div class="roi-number">2–3yr</div>
-      <div class="roi-label">Migration horizon with dual Redshift + Databricks state throughout</div>
-    </div>
-    <div class="roi-metric">
-      <div class="roi-number">8–10</div>
-      <div class="roi-label">Target consolidated semantic models for AI readiness (down from 45+)</div>
-    </div>
-    <div class="roi-metric">
-      <div class="roi-number">3</div>
-      <div class="roi-label">AI consumers of the semantic layer: Claude, Power BI Copilot, Databricks Genie</div>
-    </div>
-  </div>
-
-  <div class="roi-narrative">
-    <div class="roi-section-title">Value driver 1 — migration velocity</div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>Axys generates dbt SQL from Qlik QVD logic.</strong> dbt Cloud provides the managed environment those scripts run in — scheduling, CI/CD, and quality testing — so the BI team isn't building scaffolding while simultaneously managing 45 report migrations.</div>
-    </div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>Slim CI reduces test runtime on every pull request.</strong> Only changed models are tested, not the full project — critical when you're iterating rapidly across two active warehouse platforms.</div>
-    </div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>Browser IDE eliminates local environment friction.</strong> Jonathan's team and Axys can both develop in the same environment without credential management or version mismatches between machines.</div>
-    </div>
-  </div>
-
-  <div class="roi-narrative">
-    <div class="roi-section-title">Value driver 2 — AI readiness foundation</div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>Every dbt model generates metadata automatically.</strong> Column definitions, test results, lineage, and model descriptions are captured as you build — not retrofitted later. This is the context layer Claude, Copilot, and Genie need to reason accurately over CDM Smith's data.</div>
-    </div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>The dbt Semantic Layer solves the 8–10 model consolidation goal.</strong> Rather than maintaining separate metric definitions in Power BI, Databricks, and Claude prompts — one governed definition serves all three. When Jeremy's team consolidates models this year, those definitions propagate everywhere automatically.</div>
-    </div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>MCP server for Claude is pre-built.</strong> The Claude integration Jeremy described — using it to reason across models and help build new ones — works out of the box with dbt's MCP server. No custom engineering required to get Claude contextually aware of your full dbt project.</div>
-    </div>
-  </div>
-
-  <div class="roi-narrative">
-    <div class="roi-section-title">Value driver 3 — operational risk reduction</div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>Enterprise SLA for production pipelines.</strong> Daily batch reporting runs that feed executive dashboards and Microsoft Copilot need a support contract behind them. dbt Cloud's SLA covers the transformation layer — the part of the pipeline your BI team owns.</div>
-    </div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>Data quality tests surface failures before they reach reports.</strong> Column-level tests run on every build. If Axys-generated SQL has unexpected behavior on real data, you catch it in the pipeline — not in a Power BI dashboard a business user screenshots and sends to IT.</div>
-    </div>
-    <div class="roi-item">
-      <div class="roi-dot"></div>
-      <div class="roi-item-text"><strong>Warehouse-agnostic during the Redshift → Databricks transition.</strong> dbt Cloud adapters let the same transformation code run across both platforms. As the data team migrates EDW data to Databricks incrementally, the BI transformation layer doesn't require a parallel migration effort.</div>
-    </div>
-  </div>
-
-  <div style="background:var(--orange-light);border:1px solid var(--orange-mid);border-radius:10px;padding:1.25rem 1.5rem;margin-top:1rem;">
-    <div style="font-size:12px;color:#9a3412;font-family:var(--font-mono);letter-spacing:0.05em;margin-bottom:6px;">FRAMING FOR THE NEXT CALL</div>
-    <div style="font-size:14px;color:#7c2d12;line-height:1.6;">The migration is the near-term driver, but the AI readiness story is the strategic one. dbt Cloud is the layer that connects Axys's output to Power BI Copilot, Claude, and Genie Room without rebuilding context for each. The question for Jeremy's team is: would you rather invest the next two years in the migration and the AI playbook, or in maintaining the infrastructure that dbt Cloud replaces?</div>
-  </div>
-</div>
 
 <footer class="page-footer">
   dbt Labs Solutions Engineering · Prepared for CDM Smith · Confidential — not for distribution · April 2026
@@ -1483,12 +1424,18 @@ function setArchMode(mode) {
   document.querySelectorAll('.arch-target').forEach(function(el){el.style.display=mode==='target'?'':'none';});
   var cur = document.getElementById('mode-current');
   var tgt = document.getElementById('mode-target');
+  var lbl = document.getElementById('arch-state-label');
+  var base = 'font-size:13px;font-weight:600;padding:10px 22px;border-radius:7px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap;';
   if(mode==='current'){
-    cur.style.cssText='font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:none;background:#FF694A;color:#fff;cursor:pointer;';
-    tgt.style.cssText='font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:0.5px solid #c8d5e0;background:transparent;color:#6b8099;cursor:pointer;';
+    cur.style.cssText=base+'background:#FF694A;color:#fff;';
+    tgt.style.cssText=base+'background:transparent;color:#6b8099;font-weight:500;';
+    lbl.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding:8px 12px;border-radius:7px;background:#fef2f2;border:0.5px solid #fecaca;';
+    lbl.innerHTML='<div style="width:7px;height:7px;border-radius:50%;background:#E24B4A;flex-shrink:0;"></div><span style="font-size:12px;font-weight:500;color:#991b1b;">Current state — Qlik QVD era. Pain points highlighted. Click any node to inspect.</span>';
   } else {
-    tgt.style.cssText='font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:none;background:#FF694A;color:#fff;cursor:pointer;';
-    cur.style.cssText='font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:0.5px solid #c8d5e0;background:transparent;color:#6b8099;cursor:pointer;';
+    tgt.style.cssText=base+'background:#FF694A;color:#fff;';
+    cur.style.cssText=base+'background:transparent;color:#6b8099;font-weight:500;';
+    lbl.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:1rem;padding:8px 12px;border-radius:7px;background:#fff2ef;border:0.5px solid #ffd6cc;';
+    lbl.innerHTML='<div style="width:7px;height:7px;border-radius:50%;background:#FF694A;flex-shrink:0;"></div><span style="font-size:12px;font-weight:500;color:#9a3412;">Target state — dbt Cloud + Semantic Layer. Click any node to see capabilities.</span>';
   }
   document.getElementById('arch-detail').style.display='none';
 }
