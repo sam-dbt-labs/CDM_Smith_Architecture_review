@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDM Smith × dbt Labs — Architecture Review</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root {
+  --orange: #FF694A;
+  --orange-light: #fff2ef;
+  --orange-mid: #ffd6cc;
+  --slate-900: #0f1923;
+  --slate-800: #1a2535;
+  --slate-700: #253347;
+  --slate-600: #3d5166;
+  --slate-400: #6b8099;
+  --slate-200: #c8d5e0;
+  --slate-100: #e8eef3;
+  --slate-50: #f4f7fa;
+  --blue: #2563eb;
+  --blue-light: #eff6ff;
+  --green: #16a34a;
+  --green-light: #f0fdf4;
+  --amber: #d97706;
+  --amber-light: #fffbeb;
+  --red: #dc2626;
+  --red-light: #fef2f2;
+  --white: #ffffff;
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-serif: 'DM Serif Display', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--slate-50);
+  color: var(--slate-900);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* HEADER */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--slate-900);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  height: 56px;
+  border-bottom: 1px solid var(--slate-700);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dbt-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.dbt-logo-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--orange);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: white;
+  letter-spacing: -0.03em;
+}
+
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--slate-600);
+}
+
+.header-client {
+  font-size: 13px;
+  color: var(--slate-400);
+  font-weight: 400;
+}
+
+.header-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  background: var(--slate-700);
+  border-radius: 4px;
+  color: var(--slate-200);
+  letter-spacing: 0.05em;
+}
+
+/* TAB NAV */
+.tab-nav {
+  background: var(--white);
+  border-bottom: 1px solid var(--slate-100);
+  padding: 0 2rem;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  position: sticky;
+  top: 56px;
+  z-index: 90;
+}
+
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab-btn {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--slate-400);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 14px 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.tab-btn:hover { color: var(--slate-900); }
+.tab-btn.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+/* PAGE CONTAINER */
+.page { display: none; padding: 2.5rem 2rem 4rem; max-width: 1100px; margin: 0 auto; }
+.page.active { display: block; }
+
+/* SECTION HEADER */
+.page-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.page-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.page-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--slate-900);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: var(--slate-400);
+  font-weight: 400;
+  max-width: 600px;
+}
+
+/* ARCH DIAGRAM */
+.arch-diagram {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.arch-layers {
+  display: flex;
+  gap: 12px;
+  min-width: 700px;
+  align-items: stretch;
+}
+
+.arch-layer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layer-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate-400);
+  text-align: center;
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.arch-node {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.arch-node.source {
+  background: var(--blue-light);
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.arch-node.storage {
+  background: var(--slate-50);
+  border-color: var(--slate-200);
+  color: var(--slate-700);
+  position: relative;
+}
+
+.arch-node.storage::before {
+  content: '';
+  display: block;
+  height: 4px;
+  background: var(--slate-200);
+  border-radius: 2px;
+  margin-bottom: 8px;
+  margin: -10px -12px 8px;
+  border-radius: 8px 8px 0 0;
+}
+
+.arch-node.transform {
+  background: var(--orange-light);
+  border-color: var(--orange-mid);
+  color: #9a3412;
+}
+
+.arch-node.consume {
+  background: var(--green-light);
+  border-color: #bbf7d0;
+  color: #14532d;
+}
+
+.arch-node.pain {
+  border-color: #fecaca !important;
+  background: var(--red-light) !important;
+  color: var(--red) !important;
+}
+
+.pain-badge {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: var(--red);
+  color: white;
+  border-radius: 50%;
+  font-size: 9px;
+  line-height: 16px;
+  text-align: center;
+  font-weight: 600;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.arch-arrow {
+  display: flex;
+  align-items: center;
+  padding-top: 32px;
+  color: var(--slate-300);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* CHALLENGES PANEL */
+.challenges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.challenge-card {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid var(--red);
+}
+
+.challenge-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--red);
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.challenge-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--slate-900);
+  margin-bottom: 4px;
+}
+
+.challenge-desc {
+  font-size: 12px;
+  color: var(--slate-400);
+  line-height: 1.5;
+}
+
+/* DBT CLOUD PAGE */
+.fit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 700px) { .fit-grid { grid-template-columns: 1fr; } }
+
+.fit-card {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.fit-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.fit-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--orange-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.fit-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--slate-900);
+  line-height: 1.3;
+}
+
+.fit-subtitle {
+  font-size: 11px;
+  color: var(--slate-400);
+  margin-top: 2px;
+}
+
+.fit-connects {
+  font-size: 11px;
+  color: var(--slate-600);
+  line-height: 1.5;
+  padding: 8px 10px;
+  background: var(--slate-50);
+  border-radius: 6px;
+  border-left: 2px solid var(--orange);
+}
+
+.fit-connects strong {
+  color: var(--orange);
+  font-weight: 500;
+}
+
+/* BEFORE/AFTER TOGGLE */
+.toggle-container {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.toggle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.toggle-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--slate-900);
+}
+
+.toggle-switch {
+  display: flex;
+  background: var(--slate-100);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.toggle-opt {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--slate-400);
+  transition: all 0.15s;
+}
+
+.toggle-opt.active {
+  background: var(--white);
+  color: var(--slate-900);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.transform-state { display: none; }
+.transform-state.active { display: block; }
+
+.transform-box {
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.transform-before {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #78350f;
+}
+
+.transform-after {
+  background: var(--green-light);
+  border: 1px solid #bbf7d0;
+  color: #14532d;
+}
+
+.transform-list {
+  list-style: none;
+  margin-top: 8px;
+}
+
+.transform-list li {
+  padding: 4px 0;
+  padding-left: 16px;
+  position: relative;
+  font-size: 12px;
+}
+
+.transform-list li::before {
+  content: attr(data-icon);
+  position: absolute;
+  left: 0;
+}
+
+/* CORE VS CLOUD TABLE */
+.comparison-table-wrap {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comparison-table th {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 12px 16px;
+  text-align: left;
+  background: var(--slate-50);
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.comparison-table th:nth-child(2) { color: var(--slate-600); }
+.comparison-table th:nth-child(3) { color: var(--orange); }
+
+.comparison-table td {
+  padding: 12px 16px;
+  font-size: 12px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--slate-50);
+  line-height: 1.5;
+}
+
+.comparison-table tr:last-child td { border-bottom: none; }
+
+.comparison-table td:first-child {
+  font-weight: 500;
+  color: var(--slate-700);
+  width: 160px;
+}
+
+.comparison-table td:nth-child(2) { color: var(--slate-500); }
+.comparison-table td:nth-child(3) { color: var(--slate-800); }
+
+.gap-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+  margin-left: 6px;
+  font-family: var(--font-mono);
+}
+
+.gap-badge.gap { background: #fef3c7; color: #92400e; }
+.gap-badge.ok { background: var(--green-light); color: #14532d; }
+
+.cloud-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cloud-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--green);
+  color: white;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* HIDDEN COST PANEL */
+.hidden-cost {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+@media (max-width: 600px) { .cost-grid { grid-template-columns: 1fr; } }
+
+.cost-stat {
+  text-align: center;
+  padding: 1rem;
+  background: var(--amber-light);
+  border-radius: 8px;
+  border: 1px solid #fde68a;
+}
+
+.cost-number {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  color: var(--amber);
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.cost-label {
+  font-size: 11px;
+  color: #78350f;
+  line-height: 1.4;
+}
+
+/* ROI PAGE */
+.roi-narrative {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.roi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.roi-metric {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.roi-number {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  color: var(--orange);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.roi-label {
+  font-size: 12px;
+  color: var(--slate-400);
+  line-height: 1.4;
+}
+
+.roi-source {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--slate-300);
+  margin-top: 6px;
+}
+
+.roi-section-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--slate-900);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.roi-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--slate-50);
+  font-size: 13px;
+  align-items: flex-start;
+}
+
+.roi-item:last-child { border-bottom: none; }
+
+.roi-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--orange);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.roi-item-text { color: var(--slate-600); line-height: 1.5; }
+.roi-item-text strong { color: var(--slate-900); font-weight: 500; }
+
+/* CDM CONTEXT BANNER */
+.context-banner {
+  background: var(--slate-900);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.context-item { }
+
+.context-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate-400);
+  margin-bottom: 3px;
+}
+
+.context-val {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--white);
+}
+
+/* FOOTER */
+.page-footer {
+  background: var(--slate-900);
+  color: var(--slate-400);
+  text-align: center;
+  padding: 1.25rem 2rem;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+  border-top: 1px solid var(--slate-800);
+  margin-top: 2rem;
+}
+
+/* ASSUMPTION TAG */
+.assumption {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+/* SECTION LABEL */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate-400);
+  margin-bottom: 10px;
+}
+
+/* ENGINE PLATFORM CALLOUT */
+.engine-callout {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 1.5rem;
+}
+
+.engine-box {
+  flex: 1;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  border: 1px solid;
+  text-align: center;
+}
+
+.engine-box.core {
+  background: var(--slate-50);
+  border-color: var(--slate-200);
+}
+
+.engine-box.cloud {
+  background: var(--orange-light);
+  border-color: var(--orange-mid);
+}
+
+.engine-box-icon { font-size: 24px; margin-bottom: 6px; }
+
+.engine-box-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.engine-box.core .engine-box-title { color: var(--slate-700); }
+.engine-box.cloud .engine-box-title { color: #9a3412; }
+
+.engine-box-desc {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.engine-box.core .engine-box-desc { color: var(--slate-400); }
+.engine-box.cloud .engine-box-desc { color: #c2410c; }
+
+.engine-arrow {
+  display: flex;
+  align-items: center;
+  color: var(--slate-300);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* SEMANTIC LAYER DIAGRAM */
+.sem-diagram {
+  background: var(--white);
+  border: 1px solid var(--slate-100);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sem-center {
+  text-align: center;
+  padding: 1rem;
+  background: var(--orange-light);
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+  margin: 1rem 0;
+  font-weight: 600;
+  font-size: 14px;
+  color: #9a3412;
+}
+
+.sem-consumers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 600px) { .sem-consumers { grid-template-columns: repeat(2, 1fr); } }
+
+.sem-consumer {
+  background: var(--green-light);
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #14532d;
+}
+
+.sem-arrow-down {
+  text-align: center;
+  color: var(--orange);
+  font-size: 18px;
+  margin: 4px 0;
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="dbt-logo">
+      <div class="dbt-logo-mark">dbt</div>
+      dbt Labs
+    </div>
+    <div class="header-divider"></div>
+    <div class="header-client">CDM Smith — Architecture Review</div>
+  </div>
+  <div class="header-badge">CONFIDENTIAL · SOLUTIONS ENGINEERING</div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('current')">01 · Current State</button>
+  <button class="tab-btn" onclick="showTab('dbtcloud')">02 · dbt Cloud Fit</button>
+  <button class="tab-btn" onclick="showTab('corecloud')">03 · Core vs Cloud</button>
+  <button class="tab-btn" onclick="showTab('roi')">04 · Business Value</button>
+</nav>
+
+<!-- PAGE 1: CURRENT STATE -->
+<div id="tab-current" class="page active">
+  <div class="page-header">
+    <div class="page-eyebrow">Page 01 — Current State</div>
+    <h1 class="page-title">Where CDM Smith is today</h1>
+    <p class="page-subtitle">Migrating from Qlik to Power BI, with a parallel cloud migration from AWS Redshift to Databricks — and dbt entering the stack via migration partner Axys.</p>
+  </div>
+
+  <div class="context-banner">
+    <div class="context-item">
+      <div class="context-label">Company</div>
+      <div class="context-val">CDM Smith (Engineering Firm)</div>
+    </div>
+    <div class="context-item">
+      <div class="context-label">BI Migration</div>
+      <div class="context-val">Qlik → Power BI</div>
+    </div>
+    <div class="context-item">
+      <div class="context-label">Data Platform</div>
+      <div class="context-val">AWS Redshift → Databricks</div>
+    </div>
+    <div class="context-item">
+      <div class="context-label">Reports in Scope</div>
+      <div class="context-val">~45 reports (23 via Axys + dbt)</div>
+    </div>
+    <div class="context-item">
+      <div class="context-label">Timeline</div>
+      <div class="context-val">2–3 year migration horizon</div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE ARCHITECTURE DIAGRAM -->
+  <div style="background:var(--white);border:1px solid var(--slate-100);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+      <button id="mode-current" onclick="setArchMode('current',this)" style="font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:none;background:#FF694A;color:#fff;cursor:pointer;">Current state</button>
+      <button id="mode-target" onclick="setArchMode('target',this)" style="font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:0.5px solid var(--slate-200);background:transparent;color:var(--slate-400);cursor:pointer;">Target state</button>
+      <span style="font-size:11px;color:var(--slate-400);margin-left:4px;">Click any node to inspect</span>
+    </div>
+
+    <svg id="arch-svg" width="100%" viewBox="0 0 680 310" role="img" style="display:block;">
+      <title>CDM Smith data architecture diagram</title>
+      <desc>Interactive pipeline showing current Qlik-era stack and target dbt-powered state</desc>
+      <defs>
+        <marker id="arch-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <style>
+          .an{cursor:pointer}.an:hover rect,.an:hover ellipse,.an:hover polygon{opacity:.88}
+          @keyframes flow{to{stroke-dashoffset:-28}}
+          .fl{stroke-dasharray:8 6;animation:flow 1.6s linear infinite}
+          .fl.fast{animation-duration:.95s}
+          .fl.slow{animation-duration:2.4s}
+        </style>
+      </defs>
+
+      <!-- LAYER LABELS -->
+      <text x="52" y="17" text-anchor="middle" style="font-size:9px;fill:#6b8099;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em">SOURCES</text>
+      <text x="180" y="17" text-anchor="middle" style="font-size:9px;fill:#6b8099;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em">STORAGE</text>
+      <text x="334" y="17" text-anchor="middle" style="font-size:9px;fill:#6b8099;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em">TRANSFORM</text>
+      <text x="492" y="17" text-anchor="middle" style="font-size:9px;fill:#6b8099;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em">SEMANTIC</text>
+      <text x="632" y="17" text-anchor="middle" style="font-size:9px;fill:#6b8099;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em">CONSUME</text>
+
+      <!-- DIVIDERS -->
+      <line x1="108" y1="22" x2="108" y2="295" stroke="#e8eef3" stroke-width="0.5" stroke-dasharray="4 4"/>
+      <line x1="244" y1="22" x2="244" y2="295" stroke="#e8eef3" stroke-width="0.5" stroke-dasharray="4 4"/>
+      <line x1="422" y1="22" x2="422" y2="295" stroke="#e8eef3" stroke-width="0.5" stroke-dasharray="4 4"/>
+      <line x1="562" y1="22" x2="562" y2="295" stroke="#e8eef3" stroke-width="0.5" stroke-dasharray="4 4"/>
+
+      <!-- SOURCES (circles) -->
+      <g class="an" onclick="showArchPanel('ent-apps')">
+        <circle cx="52" cy="78" r="28" fill="#EAF3DE" stroke="#97C459" stroke-width="1"/>
+        <text x="52" y="74" text-anchor="middle" style="font-size:10px;fill:#27500A;font-weight:500">Ent.</text>
+        <text x="52" y="86" text-anchor="middle" style="font-size:10px;fill:#27500A;font-weight:500">Apps</text>
+      </g>
+      <g class="an" onclick="showArchPanel('ext-data')">
+        <circle cx="52" cy="158" r="28" fill="#EAF3DE" stroke="#97C459" stroke-width="1"/>
+        <text x="52" y="154" text-anchor="middle" style="font-size:10px;fill:#27500A;font-weight:500">Files &amp;</text>
+        <text x="52" y="166" text-anchor="middle" style="font-size:10px;fill:#27500A;font-weight:500">Feeds</text>
+      </g>
+      <g class="an" onclick="showArchPanel('legacy-db')">
+        <circle cx="52" cy="238" r="28" fill="#EAF3DE" stroke="#97C459" stroke-width="1"/>
+        <text x="52" y="234" text-anchor="middle" style="font-size:10px;fill:#27500A;font-weight:500">Legacy</text>
+        <text x="52" y="246" text-anchor="middle" style="font-size:10px;fill:#27500A;font-weight:500">SQL DBs</text>
+      </g>
+
+      <!-- SRC CONNECTORS -->
+      <line class="fl slow" x1="81" y1="90" x2="122" y2="140" stroke="#97C459" stroke-width="1.2" marker-end="url(#arch-arr)" fill="none"/>
+      <line class="fl slow" x1="81" y1="158" x2="122" y2="158" stroke="#97C459" stroke-width="1.2" marker-end="url(#arch-arr)" fill="none"/>
+      <line class="fl slow" x1="81" y1="228" x2="122" y2="178" stroke="#97C459" stroke-width="1.2" marker-end="url(#arch-arr)" fill="none"/>
+
+      <!-- STORAGE: Redshift cylinder -->
+      <g class="an" onclick="showArchPanel('redshift')">
+        <rect x="120" y="122" width="80" height="52" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+        <ellipse cx="160" cy="122" rx="40" ry="10" fill="#B5D4F4" stroke="#85B7EB" stroke-width="1"/>
+        <ellipse cx="160" cy="174" rx="40" ry="10" fill="#E6F1FB" stroke="#85B7EB" stroke-width="1"/>
+        <text x="160" y="144" text-anchor="middle" style="font-size:11px;fill:#0C447C;font-weight:500">AWS</text>
+        <text x="160" y="158" text-anchor="middle" style="font-size:11px;fill:#0C447C;font-weight:500">Redshift</text>
+      </g>
+      <!-- STORAGE: Databricks cylinder -->
+      <g class="an" onclick="showArchPanel('databricks')">
+        <rect x="144" y="210" width="80" height="46" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/>
+        <ellipse cx="184" cy="210" rx="40" ry="9" fill="#FAC775" stroke="#EF9F27" stroke-width="1"/>
+        <ellipse cx="184" cy="256" rx="40" ry="9" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/>
+        <text x="184" y="228" text-anchor="middle" style="font-size:11px;fill:#633806;font-weight:500">Databricks</text>
+        <text x="184" y="243" text-anchor="middle" style="font-size:9px;fill:#854F0B">(migrating)</text>
+      </g>
+
+      <!-- STORAGE → TRANSFORM -->
+      <line class="fl" x1="202" y1="152" x2="250" y2="152" stroke="#85B7EB" stroke-width="1.4" marker-end="url(#arch-arr)" fill="none"/>
+      <line class="fl slow" x1="226" y1="232" x2="252" y2="208" stroke="#EF9F27" stroke-width="1.4" marker-end="url(#arch-arr)" fill="none"/>
+
+      <!-- CURRENT: Qlik boxes -->
+      <g class="an arch-current" onclick="showArchPanel('qlik-transform')">
+        <rect x="250" y="110" width="94" height="60" rx="8" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1.2"/>
+        <text x="297" y="134" text-anchor="middle" style="font-size:11px;fill:#791F1F;font-weight:500">Qlik QVD</text>
+        <text x="297" y="149" text-anchor="middle" style="font-size:11px;fill:#791F1F;font-weight:500">Generators</text>
+        <text x="297" y="162" text-anchor="middle" style="font-size:9px;fill:#A32D2D">logic locked in</text>
+        <circle cx="336" cy="115" r="7" fill="#E24B4A"/><text x="336" y="119" text-anchor="middle" style="font-size:9px;fill:#fff;font-weight:700">!</text>
+      </g>
+      <g class="an arch-current" onclick="showArchPanel('per-report')">
+        <rect x="250" y="196" width="94" height="58" rx="8" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1.2"/>
+        <text x="297" y="218" text-anchor="middle" style="font-size:11px;fill:#791F1F;font-weight:500">Per-report</text>
+        <text x="297" y="233" text-anchor="middle" style="font-size:11px;fill:#791F1F">SQL models</text>
+        <text x="297" y="247" text-anchor="middle" style="font-size:9px;fill:#A32D2D">no reuse</text>
+        <circle cx="336" cy="201" r="7" fill="#E24B4A"/><text x="336" y="205" text-anchor="middle" style="font-size:9px;fill:#fff;font-weight:700">!</text>
+      </g>
+      <!-- TARGET: dbt Cloud box -->
+      <g class="an arch-target" onclick="showArchPanel('dbt-cloud')" style="display:none">
+        <rect x="248" y="102" width="98" height="168" rx="10" fill="#FFF2EF" stroke="#FF694A" stroke-width="2"/>
+        <rect x="254" y="110" width="86" height="22" rx="5" fill="#FF694A"/>
+        <text x="297" y="125" text-anchor="middle" style="font-size:11px;fill:#fff;font-weight:600">dbt Cloud</text>
+        <text x="297" y="152" text-anchor="middle" style="font-size:10px;fill:#9a3412;font-weight:500">Modular SQL</text>
+        <text x="297" y="165" text-anchor="middle" style="font-size:9px;fill:#c2410c">lineage + tests</text>
+        <line x1="258" y1="176" x2="336" y2="176" stroke="#ffd6cc" stroke-width="0.5"/>
+        <text x="297" y="192" text-anchor="middle" style="font-size:10px;fill:#9a3412;font-weight:500">Managed jobs</text>
+        <text x="297" y="205" text-anchor="middle" style="font-size:9px;fill:#c2410c">native scheduler</text>
+        <line x1="258" y1="216" x2="336" y2="216" stroke="#ffd6cc" stroke-width="0.5"/>
+        <text x="297" y="232" text-anchor="middle" style="font-size:10px;fill:#9a3412;font-weight:500">Explorer</text>
+        <text x="297" y="245" text-anchor="middle" style="font-size:9px;fill:#c2410c">model health</text>
+      </g>
+
+      <!-- TRANSFORM → SEMANTIC -->
+      <line class="fl arch-current" x1="346" y1="140" x2="444" y2="155" stroke="#F09595" stroke-width="1.2" marker-end="url(#arch-arr)" fill="none"/>
+      <line class="fl arch-current" x1="346" y1="225" x2="444" y2="205" stroke="#F09595" stroke-width="1.2" marker-end="url(#arch-arr)" fill="none"/>
+      <line class="fl fast arch-target" x1="348" y1="186" x2="444" y2="186" stroke="#FF694A" stroke-width="2" marker-end="url(#arch-arr)" fill="none" style="display:none"/>
+
+      <!-- CURRENT: Qlik semantic -->
+      <g class="an arch-current" onclick="showArchPanel('qlik-sem')">
+        <rect x="442" y="118" width="90" height="50" rx="6" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1"/>
+        <text x="487" y="140" text-anchor="middle" style="font-size:10px;fill:#791F1F;font-weight:500">Disparate</text>
+        <text x="487" y="154" text-anchor="middle" style="font-size:10px;fill:#791F1F">Qlik models</text>
+        <circle cx="526" cy="123" r="7" fill="#E24B4A"/><text x="526" y="127" text-anchor="middle" style="font-size:9px;fill:#fff;font-weight:700">!</text>
+      </g>
+      <g class="an arch-current" onclick="showArchPanel('qlik-sem')">
+        <rect x="442" y="188" width="90" height="50" rx="6" fill="#FCEBEB" stroke="#E24B4A" stroke-width="1"/>
+        <text x="487" y="208" text-anchor="middle" style="font-size:10px;fill:#791F1F;font-weight:500">Per-report</text>
+        <text x="487" y="222" text-anchor="middle" style="font-size:10px;fill:#791F1F">no sharing</text>
+      </g>
+      <!-- TARGET: dbt Semantic Layer -->
+      <g class="an arch-target" onclick="showArchPanel('sem-layer')" style="display:none">
+        <rect x="440" y="112" width="94" height="148" rx="10" fill="#FFF2EF" stroke="#FF694A" stroke-width="1.8"/>
+        <rect x="447" y="120" width="80" height="20" rx="4" fill="#FF694A"/>
+        <text x="487" y="134" text-anchor="middle" style="font-size:10px;fill:#fff;font-weight:600">Semantic Layer</text>
+        <text x="487" y="158" text-anchor="middle" style="font-size:9px;fill:#9a3412;font-weight:500">Governed metrics</text>
+        <text x="487" y="172" text-anchor="middle" style="font-size:9px;fill:#c2410c">single definition</text>
+        <line x1="448" y1="183" x2="526" y2="183" stroke="#ffd6cc" stroke-width="0.5"/>
+        <text x="487" y="198" text-anchor="middle" style="font-size:9px;fill:#9a3412;font-weight:500">Warehouse</text>
+        <text x="487" y="211" text-anchor="middle" style="font-size:9px;fill:#c2410c">agnostic</text>
+        <line x1="448" y1="222" x2="526" y2="222" stroke="#ffd6cc" stroke-width="0.5"/>
+        <text x="487" y="237" text-anchor="middle" style="font-size:9px;fill:#9a3412;font-weight:500">MCP ready</text>
+        <text x="487" y="250" text-anchor="middle" style="font-size:9px;fill:#c2410c">Claude + Genie</text>
+      </g>
+
+      <!-- SEMANTIC → CONSUME -->
+      <line class="fl arch-current" x1="534" y1="143" x2="572" y2="143" stroke="#F09595" stroke-width="1.2" marker-end="url(#arch-arr)" fill="none"/>
+      <line class="fl arch-current" x1="534" y1="213" x2="572" y2="230" stroke="#F09595" stroke-width="1.2" marker-end="url(#arch-arr)" fill="none"/>
+      <line class="fl fast arch-target" x1="535" y1="152" x2="572" y2="128" stroke="#FF694A" stroke-width="1.4" marker-end="url(#arch-arr)" fill="none" style="display:none"/>
+      <line class="fl fast arch-target" x1="535" y1="186" x2="572" y2="178" stroke="#FF694A" stroke-width="1.4" marker-end="url(#arch-arr)" fill="none" style="display:none"/>
+      <line class="fl fast arch-target" x1="535" y1="218" x2="572" y2="228" stroke="#FF694A" stroke-width="1.4" marker-end="url(#arch-arr)" fill="none" style="display:none"/>
+
+      <!-- CURRENT consume -->
+      <g class="an arch-current" onclick="showArchPanel('qlik-bi')">
+        <rect x="570" y="112" width="84" height="40" rx="8" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/>
+        <text x="612" y="129" text-anchor="middle" style="font-size:11px;fill:#26215C;font-weight:500">Qlik Sense</text>
+        <text x="612" y="143" text-anchor="middle" style="font-size:9px;fill:#534AB7">retiring</text>
+      </g>
+      <g class="an arch-current" onclick="showArchPanel('powerbi')">
+        <rect x="570" y="200" width="84" height="40" rx="8" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+        <text x="612" y="216" text-anchor="middle" style="font-size:11px;fill:#173404;font-weight:500">Power BI</text>
+        <text x="612" y="230" text-anchor="middle" style="font-size:9px;fill:#3B6D11">target</text>
+      </g>
+      <!-- TARGET consume -->
+      <g class="an arch-target" onclick="showArchPanel('powerbi')" style="display:none">
+        <rect x="570" y="104" width="84" height="40" rx="8" fill="#EAF3DE" stroke="#639922" stroke-width="1"/>
+        <text x="612" y="121" text-anchor="middle" style="font-size:10px;fill:#173404;font-weight:500">Power BI</text>
+        <text x="612" y="134" text-anchor="middle" style="font-size:9px;fill:#3B6D11">+ Copilot</text>
+      </g>
+      <g class="an arch-target" onclick="showArchPanel('claude-mcp')" style="display:none">
+        <rect x="570" y="158" width="84" height="40" rx="8" fill="#FFF2EF" stroke="#FF694A" stroke-width="1.4"/>
+        <text x="612" y="175" text-anchor="middle" style="font-size:10px;fill:#9a3412;font-weight:500">Claude</text>
+        <text x="612" y="188" text-anchor="middle" style="font-size:9px;fill:#c2410c">via MCP</text>
+      </g>
+      <g class="an arch-target" onclick="showArchPanel('genie')" style="display:none">
+        <rect x="570" y="212" width="84" height="40" rx="8" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/>
+        <text x="612" y="228" text-anchor="middle" style="font-size:10px;fill:#633806;font-weight:500">Databricks</text>
+        <text x="612" y="241" text-anchor="middle" style="font-size:9px;fill:#854F0B">Genie Room</text>
+      </g>
+    </svg>
+
+    <!-- LEGEND -->
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:.75rem;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--slate-400)"><div style="width:10px;height:10px;border-radius:50%;background:#EAF3DE;border:1px solid #97C459"></div>Source</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--slate-400)"><div style="width:10px;height:10px;border-radius:2px;background:#E6F1FB;border:1px solid #85B7EB"></div>Warehouse</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--slate-400)"><div style="width:10px;height:10px;border-radius:2px;background:#FCEBEB;border:1px solid #E24B4A"></div>Pain point</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--slate-400)"><div style="width:10px;height:10px;border-radius:2px;background:#FFF2EF;border:1px solid #FF694A"></div>dbt Cloud</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--slate-400)"><div style="width:10px;height:10px;border-radius:2px;background:#EAF3DE;border:1px solid #639922"></div>Consumer</div>
+    </div>
+
+    <!-- DETAIL PANEL -->
+    <div id="arch-detail" style="display:none;margin-top:1rem;background:var(--slate-50);border:0.5px solid var(--slate-200);border-radius:10px;padding:1rem 1.25rem;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;">
+        <div id="arch-dp-dot" style="width:10px;height:10px;border-radius:50%;flex-shrink:0;"></div>
+        <div id="arch-dp-title" style="font-size:14px;font-weight:600;color:var(--slate-900);"></div>
+        <div onclick="document.getElementById('arch-detail').style.display='none'" style="margin-left:auto;font-size:11px;color:var(--slate-400);cursor:pointer;padding:2px 8px;border:0.5px solid var(--slate-200);border-radius:4px;">close</div>
+      </div>
+      <div id="arch-dp-body" style="font-size:12px;color:var(--slate-500);line-height:1.6;margin-bottom:.75rem;"></div>
+      <div id="arch-dp-tags" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Current challenges identified on discovery call</div>
+  <div class="challenges-grid">
+    <div class="challenge-card">
+      <div class="challenge-num">CHALLENGE 01</div>
+      <div class="challenge-title">Logic locked in Qlik QVD generators</div>
+      <div class="challenge-desc">Business transformation logic is embedded in proprietary Qlik constructs. Axys must extract and re-express this as SQL — dbt becomes the new home for it.</div>
+    </div>
+    <div class="challenge-card">
+      <div class="challenge-num">CHALLENGE 02</div>
+      <div class="challenge-title">Semantic models are 1:1 with reports</div>
+      <div class="challenge-desc">Each Qlik report has its own isolated model. The AI-readiness goal requires consolidating down to 8–10 shared semantic models with standardized naming and context.</div>
+    </div>
+    <div class="challenge-card">
+      <div class="challenge-num">CHALLENGE 03</div>
+      <div class="challenge-title">No metadata or column context on legacy tables</div>
+      <div class="challenge-desc">Some older tables have generic, undescriptive column names. Without enriched metadata, AI systems like Claude and Copilot cannot reason accurately over the data.</div>
+    </div>
+    <div class="challenge-card">
+      <div class="challenge-num">CHALLENGE 04</div>
+      <div class="challenge-title">Dual platform state for 2+ years</div>
+      <div class="challenge-desc">Redshift and Databricks will coexist for an extended period. The transformation layer needs to work across both without being tightly coupled to either.</div>
+    </div>
+    <div class="challenge-card">
+      <div class="challenge-num">CHALLENGE 05</div>
+      <div class="challenge-title">No SLA on free dbt Core</div>
+      <div class="challenge-desc">Enterprise architect flagged this directly. For a production reporting migration with business-critical pipelines, community support carries meaningful operational risk.</div>
+    </div>
+    <div class="challenge-card">
+      <div class="challenge-num">CHALLENGE 06</div>
+      <div class="challenge-title">Agentic development playbook still undefined</div>
+      <div class="challenge-desc">CDM Smith wants a 2027 playbook for AI-assisted BI development (using Claude + VS Code/Cursor, and Microsoft spec-driven agents). The data foundation layer is not yet locked in.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: DBT CLOUD FIT -->
+<div id="tab-dbtcloud" class="page">
+  <div class="page-header">
+    <div class="page-eyebrow">Page 02 — dbt Cloud Value</div>
+    <h1 class="page-title">Where dbt Cloud fits into CDM Smith's architecture</h1>
+    <p class="page-subtitle">dbt Cloud doesn't replace your BI layer — it strengthens the foundation beneath it, providing the metadata, governance, and context your AI initiatives depend on.</p>
+  </div>
+
+  <div class="toggle-container">
+    <div class="toggle-header">
+      <div class="toggle-title">Transformation layer — before &amp; after dbt Cloud</div>
+      <div class="toggle-switch">
+        <button class="toggle-opt active" onclick="toggleState('before', this)">Before</button>
+        <button class="toggle-opt" onclick="toggleState('after', this)">After</button>
+      </div>
+    </div>
+
+    <div id="state-before" class="transform-state active">
+      <div class="transform-box transform-before">
+        <strong>⚠ Qlik QVD Generators + ad-hoc SQL</strong>
+        <ul class="transform-list">
+          <li data-icon="✗">Logic embedded in Qlik constructs — not portable, not testable</li>
+          <li data-icon="✗">Per-report models with duplicated transformations and no reuse</li>
+          <li data-icon="✗">No column definitions, lineage, or data quality testing</li>
+          <li data-icon="✗">No metadata enrichment — AI and Copilot operate on blind tables</li>
+          <li data-icon="✗">No SLA, no orchestration, no observability</li>
+          <li data-icon="✗">Redshift and Databricks managed separately with no common layer</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="state-after" class="transform-state">
+      <div class="transform-box transform-after">
+        <strong>✓ dbt Cloud transformation layer</strong>
+        <ul class="transform-list">
+          <li data-icon="✓">Modular, reusable SQL models with full lineage — source to column</li>
+          <li data-icon="✓">Every model ships with a metadata YAML file: definitions, tests, column docs</li>
+          <li data-icon="✓">Data quality tests run on every build — you know if data is healthy before it reaches Power BI or Claude</li>
+          <li data-icon="✓">Agnostic to warehouse — runs identically on Redshift and Databricks during the dual-platform period</li>
+          <li data-icon="✓">Semantic Layer serves metrics to Claude, Power BI, and Databricks Genie Room simultaneously</li>
+          <li data-icon="✓">Enterprise SLA, native CI/CD, browser IDE, managed orchestration — no DIY infra</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">dbt Cloud capability → CDM Smith pain point mapping</div>
+  <div class="fit-grid">
+    <div class="fit-card">
+      <div class="fit-card-header">
+        <div class="fit-icon">⚙️</div>
+        <div>
+          <div class="fit-title">Managed orchestration</div>
+          <div class="fit-subtitle">Native job scheduling, no Airflow required</div>
+        </div>
+      </div>
+      <div class="fit-connects"><strong>Addresses:</strong> The team needs dbt pipelines running daily in production ("batch-wise execution on a daily basis") for the migrated reports. Core requires you to stand up and maintain a scheduler yourself — Cloud handles it natively.</div>
+    </div>
+
+    <div class="fit-card">
+      <div class="fit-card-header">
+        <div class="fit-icon">🔍</div>
+        <div>
+          <div class="fit-title">dbt Explorer + observability</div>
+          <div class="fit-subtitle">Lineage, model health, data quality visibility</div>
+        </div>
+      </div>
+      <div class="fit-connects"><strong>Addresses:</strong> Jonathan's question about metadata and context quality. Explorer gives the team full column-level lineage, test results, and model health — answering "is this data trustworthy?" before it reaches Claude or Copilot.</div>
+    </div>
+
+    <div class="fit-card">
+      <div class="fit-card-header">
+        <div class="fit-icon">📐</div>
+        <div>
+          <div class="fit-title">Semantic Layer</div>
+          <div class="fit-subtitle">Metric governance across all consumers</div>
+        </div>
+      </div>
+      <div class="fit-connects"><strong>Addresses:</strong> Jeremy's goal of AI-readable semantic models. dbt's Semantic Layer is <strong>warehouse-agnostic</strong> — it serves the same governed metric definitions to Power BI, Claude (via MCP), and Databricks Genie Room simultaneously, avoiding vendor lock-in.</div>
+    </div>
+
+    <div class="fit-card">
+      <div class="fit-card-header">
+        <div class="fit-icon">🤖</div>
+        <div>
+          <div class="fit-title">Claude + MCP integration</div>
+          <div class="fit-subtitle">dbt project context served directly into LLMs</div>
+        </div>
+      </div>
+      <div class="fit-connects"><strong>Addresses:</strong> CDM Smith's plan to use Claude for model consolidation and context reasoning. The dbt MCP server scaffolds your entire project — lineage, definitions, test results, metrics — directly into Claude's context window without custom engineering.</div>
+    </div>
+
+    <div class="fit-card">
+      <div class="fit-card-header">
+        <div class="fit-icon">🔒</div>
+        <div>
+          <div class="fit-title">Enterprise SLA + support</div>
+          <div class="fit-subtitle">24/7 support, uptime guarantees</div>
+        </div>
+      </div>
+      <div class="fit-connects"><strong>Addresses:</strong> The enterprise architect's question that Declan fielded — "what is the SLA for the free version?" dbt Cloud provides defined SLAs, dedicated support, and incident response — appropriate for business-critical reporting pipelines.</div>
+    </div>
+
+    <div class="fit-card">
+      <div class="fit-card-header">
+        <div class="fit-icon">🔄</div>
+        <div>
+          <div class="fit-title">Native CI/CD + slim CI</div>
+          <div class="fit-subtitle">Test only changed models on PR</div>
+        </div>
+      </div>
+      <div class="fit-connects"><strong>Addresses:</strong> As the team scales from Axys-driven migration into self-managed development, CI/CD becomes critical. Cloud's slim CI runs tests only on changed models — faster feedback loops without spinning up your own GitHub Actions pipeline.</div>
+    </div>
+  </div>
+
+  <div class="section-label">dbt Semantic Layer — agnostic data serving for CDM Smith's AI stack</div>
+  <div class="sem-diagram">
+    <div style="text-align:center;font-size:12px;color:var(--slate-400);margin-bottom:8px;">dbt transformation models on AWS Redshift + Databricks</div>
+    <div class="sem-arrow-down">↓</div>
+    <div class="sem-center">dbt Semantic Layer — governed metric definitions, warehouse-agnostic</div>
+    <div class="sem-arrow-down">↓ serves all consumers simultaneously</div>
+    <div class="sem-consumers">
+      <div class="sem-consumer">Power BI<br><small style="opacity:0.7">Copilot + reports</small></div>
+      <div class="sem-consumer">Claude<br><small style="opacity:0.7">via MCP server</small></div>
+      <div class="sem-consumer">Databricks Genie<br><small style="opacity:0.7">conversational BI</small></div>
+      <div class="sem-consumer">Custom apps<br><small style="opacity:0.7">APIs + future tools</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: CORE VS CLOUD -->
+<div id="tab-corecloud" class="page">
+  <div class="page-header">
+    <div class="page-eyebrow">Page 03 — Core vs Cloud</div>
+    <h1 class="page-title">dbt Core vs dbt Cloud — an honest comparison</h1>
+    <p class="page-subtitle">dbt Core is real and capable. The question is whether the infrastructure you'd build around it is a better use of engineering time than the migration itself.</p>
+  </div>
+
+  <div class="engine-callout">
+    <div class="engine-box core">
+      <div class="engine-box-icon">⚙️</div>
+      <div class="engine-box-title">dbt Core</div>
+      <div class="engine-box-desc">The open-source SQL transformation engine. Powerful, free, and battle-tested. Runs your models, generates docs, tracks lineage. No scheduler, no IDE, no SLA, no Semantic Layer.</div>
+    </div>
+    <div class="engine-arrow">+</div>
+    <div class="engine-box cloud">
+      <div class="engine-box-icon">☁️</div>
+      <div class="engine-box-title">dbt Cloud</div>
+      <div class="engine-box-desc">The full managed platform built on top of Core. Adds orchestration, browser IDE, CI/CD, enterprise SLA, Explorer observability, and the Semantic Layer. The engine plus the infrastructure around it.</div>
+    </div>
+  </div>
+
+  <div class="comparison-table-wrap">
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>dbt Core</th>
+          <th>dbt Cloud</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>SQL transformation</td>
+          <td>✓ Full capability — this is Core's strength</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> Identical transformation engine</div></td>
+        </tr>
+        <tr>
+          <td>Lineage tracking</td>
+          <td>✓ DAG lineage via dbt docs</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> Explorer: column-level lineage, upstream/downstream impact</div></td>
+        </tr>
+        <tr>
+          <td>Orchestration <span class="gap-badge gap">GAP</span></td>
+          <td>BYO — Airflow, Dagster, or cron. You build and maintain it. For daily batch jobs across Redshift and Databricks, this is non-trivial.</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> Native job scheduler, retry logic, alerts — no infra to manage</div></td>
+        </tr>
+        <tr>
+          <td>CI/CD <span class="gap-badge gap">GAP</span></td>
+          <td>Manual — GitHub Actions or similar, custom setup per environment. No slim CI (runs all models on every PR).</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> Native slim CI — tests only changed models, faster and cheaper</div></td>
+        </tr>
+        <tr>
+          <td>IDE / development <span class="gap-badge gap">GAP</span></td>
+          <td>Local VS Code. Each developer manages their own environment, credentials, dbt version.</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> Browser-based IDE with live preview, shared environments, no local setup</div></td>
+        </tr>
+        <tr>
+          <td>Observability <span class="gap-badge gap">GAP</span></td>
+          <td>dbt docs (static site). No monitors, no alerting, no freshness SLAs, no model performance tracking.</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> dbt Explorer: model health, test results, freshness monitors, alerts</div></td>
+        </tr>
+        <tr>
+          <td>Semantic Layer <span class="gap-badge gap">GAP</span></td>
+          <td>Not available. Metrics must be defined and maintained per-tool (Power BI measures, Databricks views, etc.). No single source of truth.</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> Included — governs metrics for Power BI, Claude MCP, Genie Room simultaneously</div></td>
+        </tr>
+        <tr>
+          <td>Support &amp; SLA <span class="gap-badge gap">GAP</span></td>
+          <td>Community Slack only. No SLA — as Declan confirmed on the call.</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> Enterprise SLA, dedicated support, incident response</div></td>
+        </tr>
+        <tr>
+          <td>Multi-project / mesh <span class="gap-badge gap">GAP</span></td>
+          <td>Possible but requires complex custom tooling, cross-project refs become fragile at scale.</td>
+          <td><div class="cloud-cell"><div class="cloud-check">✓</div> dbt Mesh — native cross-project dependencies, access controls</div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="hidden-cost">
+    <div class="roi-section-title">The hidden cost of dbt Core at CDM Smith's scale</div>
+    <p style="font-size:13px;color:var(--slate-400);margin-bottom:1rem;">For a small side project, Core is fine. For a 2–3 year production migration with daily batch jobs, dual warehouse state, and AI initiatives on top — the engineering overhead compounds quickly.</p>
+    <div class="cost-grid">
+      <div class="cost-stat">
+        <div class="cost-number">~3–6mo</div>
+        <div class="cost-label">To stand up Airflow or Dagster properly for production scheduling <span class="assumption">est.</span></div>
+      </div>
+      <div class="cost-stat">
+        <div class="cost-number">1–2 FTE</div>
+        <div class="cost-label">Ongoing infra maintenance: orchestration, CI, monitoring, secrets management <span class="assumption">est.</span></div>
+      </div>
+      <div class="cost-stat">
+        <div class="cost-number">0</div>
+        <div class="cost-label">Support when a pipeline fails at 2am during a critical reporting cycle — Core has no SLA</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--slate-900);border-radius:10px;padding:1.25rem 1.5rem;color:var(--white);">
+    <div style="font-size:12px;color:var(--slate-400);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:0.05em;">RECOMMENDATION</div>
+    <div style="font-size:15px;font-weight:500;line-height:1.5;">Axys recommended Core because it works — and it does. But CDM Smith's enterprise scale, AI ambitions, and dual-platform complexity means you'll quickly outgrow the free tier. The question isn't whether Core can run your SQL. It's whether you want to spend the next two years maintaining the infrastructure around it, or investing that time in the migration and the AI use cases you described.</div>
+  </div>
+</div>
+
+<!-- PAGE 4: ROI -->
+<div id="tab-roi" class="page">
+  <div class="page-header">
+    <div class="page-eyebrow">Page 04 — Business Value</div>
+    <h1 class="page-title">Business value framing for CDM Smith</h1>
+    <p class="page-subtitle">Based on what was shared on the call: ~45 reports, 2–3 year migration, Microsoft-first AI strategy, and a BI team managing both the migration and a forward-looking agentic playbook.</p>
+  </div>
+
+  <div class="roi-grid">
+    <div class="roi-metric">
+      <div class="roi-number">45</div>
+      <div class="roi-label">Reports in scope across manual + Axys-driven migration tracks</div>
+    </div>
+    <div class="roi-metric">
+      <div class="roi-number">2–3yr</div>
+      <div class="roi-label">Migration horizon with dual Redshift + Databricks state throughout</div>
+    </div>
+    <div class="roi-metric">
+      <div class="roi-number">8–10</div>
+      <div class="roi-label">Target consolidated semantic models for AI readiness (down from 45+)</div>
+    </div>
+    <div class="roi-metric">
+      <div class="roi-number">3</div>
+      <div class="roi-label">AI consumers of the semantic layer: Claude, Power BI Copilot, Databricks Genie</div>
+    </div>
+  </div>
+
+  <div class="roi-narrative">
+    <div class="roi-section-title">Value driver 1 — migration velocity</div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>Axys generates dbt SQL from Qlik QVD logic.</strong> dbt Cloud provides the managed environment those scripts run in — scheduling, CI/CD, and quality testing — so the BI team isn't building scaffolding while simultaneously managing 45 report migrations.</div>
+    </div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>Slim CI reduces test runtime on every pull request.</strong> Only changed models are tested, not the full project — critical when you're iterating rapidly across two active warehouse platforms.</div>
+    </div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>Browser IDE eliminates local environment friction.</strong> Jonathan's team and Axys can both develop in the same environment without credential management or version mismatches between machines.</div>
+    </div>
+  </div>
+
+  <div class="roi-narrative">
+    <div class="roi-section-title">Value driver 2 — AI readiness foundation</div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>Every dbt model generates metadata automatically.</strong> Column definitions, test results, lineage, and model descriptions are captured as you build — not retrofitted later. This is the context layer Claude, Copilot, and Genie need to reason accurately over CDM Smith's data.</div>
+    </div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>The dbt Semantic Layer solves the 8–10 model consolidation goal.</strong> Rather than maintaining separate metric definitions in Power BI, Databricks, and Claude prompts — one governed definition serves all three. When Jeremy's team consolidates models this year, those definitions propagate everywhere automatically.</div>
+    </div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>MCP server for Claude is pre-built.</strong> The Claude integration Jeremy described — using it to reason across models and help build new ones — works out of the box with dbt's MCP server. No custom engineering required to get Claude contextually aware of your full dbt project.</div>
+    </div>
+  </div>
+
+  <div class="roi-narrative">
+    <div class="roi-section-title">Value driver 3 — operational risk reduction</div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>Enterprise SLA for production pipelines.</strong> Daily batch reporting runs that feed executive dashboards and Microsoft Copilot need a support contract behind them. dbt Cloud's SLA covers the transformation layer — the part of the pipeline your BI team owns.</div>
+    </div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>Data quality tests surface failures before they reach reports.</strong> Column-level tests run on every build. If Axys-generated SQL has unexpected behavior on real data, you catch it in the pipeline — not in a Power BI dashboard a business user screenshots and sends to IT.</div>
+    </div>
+    <div class="roi-item">
+      <div class="roi-dot"></div>
+      <div class="roi-item-text"><strong>Warehouse-agnostic during the Redshift → Databricks transition.</strong> dbt Cloud adapters let the same transformation code run across both platforms. As the data team migrates EDW data to Databricks incrementally, the BI transformation layer doesn't require a parallel migration effort.</div>
+    </div>
+  </div>
+
+  <div style="background:var(--orange-light);border:1px solid var(--orange-mid);border-radius:10px;padding:1.25rem 1.5rem;margin-top:1rem;">
+    <div style="font-size:12px;color:#9a3412;font-family:var(--font-mono);letter-spacing:0.05em;margin-bottom:6px;">FRAMING FOR THE NEXT CALL</div>
+    <div style="font-size:14px;color:#7c2d12;line-height:1.6;">The migration is the near-term driver, but the AI readiness story is the strategic one. dbt Cloud is the layer that connects Axys's output to Power BI Copilot, Claude, and Genie Room without rebuilding context for each. The question for Jeremy's team is: would you rather invest the next two years in the migration and the AI playbook, or in maintaining the infrastructure that dbt Cloud replaces?</div>
+  </div>
+</div>
+
+<footer class="page-footer">
+  dbt Labs Solutions Engineering · Prepared for CDM Smith · Confidential — not for distribution · April 2026
+</footer>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleState(state, el) {
+  document.querySelectorAll('.transform-state').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.toggle-opt').forEach(o => o.classList.remove('active'));
+  document.getElementById('state-' + state).classList.add('active');
+  el.classList.add('active');
+}
+
+var archPanels = {
+  'ent-apps':{color:'#639922',title:'Enterprise applications',body:'CDM Smith engineering project data, finance, HR, and operational systems. These are the authoritative source systems whose data flows into Redshift for reporting and analysis.',tags:[['neutral','ERP / project management'],['neutral','Finance systems'],['neutral','Operational data']]},
+  'ext-data':{color:'#639922',title:'External files & feeds',body:'External data ingested as flat files, CSVs, and partner feeds. Currently loaded into Redshift; will gradually move to Databricks as the EDW migration progresses.',tags:[['neutral','CSV / flat file ingestion'],['neutral','Partner data feeds']]},
+  'legacy-db':{color:'#639922',title:'Legacy SQL databases',body:'Older relational databases still in production. Some contain tables with generic, undescriptive column names — the specific challenge Jonathan raised for AI context enrichment during the call.',tags:[['pain','Generic column names'],['neutral','Still in production use']]},
+  'redshift':{color:'#185FA5',title:'AWS Redshift (current warehouse)',body:'The current primary data warehouse. All Qlik reports and transformations run against Redshift today. CDM Smith has no hard deadline to fully migrate off Redshift — dbt must work across both Redshift and Databricks for the foreseeable future.',tags:[['neutral','Current primary DWH'],['neutral','No hard migration deadline'],['neutral','dbt runs here today']]},
+  'databricks':{color:'#BA7517',title:'Databricks (target platform)',body:'The target data platform. 50% of data migrated by end of 2025, remaining 50% in 2026. The BI migration and EDW migration run on separate timelines with separate teams — creating the dual-platform challenge.',tags:[['neutral','Target cloud platform'],['neutral','Separate migration track from BI'],['pain','Dual-platform state for 2+ years']]},
+  'qlik-transform':{color:'#E24B4A',title:'Qlik QVD generators',body:'The core pain point. Business logic — aggregations, joins, calculations — is embedded in Qlik\'s proprietary QVD format. Axys extracts this and re-expresses it as SQL, with dbt as the new execution layer.',tags:[['pain','Logic locked in proprietary format'],['pain','Not portable or testable'],['neutral','Axys extracting to SQL']]},
+  'per-report':{color:'#E24B4A',title:'Per-report SQL models',body:'Each Qlik report has its own isolated transformation logic — no reuse across reports. Identical business calculations exist in multiple places, causing metric inconsistency and multiplying the migration burden.',tags:[['pain','No model reuse'],['pain','Metric inconsistency across reports'],['pain','45 reports × isolated logic']]},
+  'dbt-cloud':{color:'#FF694A',title:'dbt Cloud — transformation platform',body:'dbt Cloud replaces Qlik\'s QVD layer with modular, tested, documented SQL models. Every model ships with a YAML metadata file: column definitions, data quality tests, and full lineage. This is the context layer that makes Claude and Copilot accurate.',tags:[['good','Modular reusable SQL models'],['good','Column-level lineage tracking'],['good','Data quality tests on every build'],['good','Native orchestration (no Airflow)'],['good','Enterprise SLA + support'],['good','Browser IDE + native CI/CD']]},
+  'qlik-sem':{color:'#E24B4A',title:'Disparate Qlik semantic models',body:'Each of the 45 reports has its own semantic model in Qlik — siloed, inconsistently named, and inaccessible outside of Qlik. Jeremy\'s goal: consolidate down to 8–10 shared models. This pattern is what makes that impossible today.',tags:[['pain','45+ isolated semantic models'],['pain','No shared metric definitions'],['pain','AI cannot reason across them']]},
+  'sem-layer':{color:'#FF694A',title:'dbt Semantic Layer',body:'Single source of truth for metric definitions — centrally governed and simultaneously accessible to Power BI, Claude (via MCP), and Databricks Genie Room. Jeremy\'s 8–10 model consolidation goal is achieved by defining metrics once here.',tags:[['good','One definition serves all consumers'],['good','Warehouse agnostic'],['good','Power BI + Claude + Genie simultaneously'],['good','Central AI context governance']]},
+  'qlik-bi':{color:'#534AB7',title:'Qlik Sense (being retired)',body:'The current BI presentation layer. Being decommissioned as part of CDM Smith\'s Microsoft-first strategy. The company wants to leverage Copilot AI and Microsoft\'s agentic development tooling — neither of which Qlik supports.',tags:[['pain','Being decommissioned'],['neutral','Replaced by Power BI']]},
+  'powerbi':{color:'#3B6D11',title:'Power BI + Microsoft Copilot',body:'The target BI layer. Jeremy\'s team is betting on Copilot within Power BI, spec-driven agentic development via GitHub, and a consolidated semantic model as the foundation for AI-generated reports and citizen developer self-service.',tags:[['good','Microsoft Copilot AI built in'],['good','Citizen developer self-service'],['good','Spec-driven agentic development'],['neutral','Semantic model goal: 8–10 models']]},
+  'claude-mcp':{color:'#FF694A',title:'Claude via dbt MCP server',body:'Jeremy and Jonathan specifically called out using Claude to reason across models and assist consolidation. The dbt MCP server gives Claude full project context — lineage, definitions, test results, metric health — no custom engineering required.',tags:[['good','Pre-built dbt MCP server'],['good','Full project context in Claude'],['good','Lineage + test results LLM-ready'],['good','Demoed live on the discovery call']]},
+  'genie':{color:'#BA7517',title:'Databricks Genie Room',body:'Databricks\'s conversational BI interface. dbt\'s Semantic Layer serves into Genie Room natively — maintaining backwards compatibility as CDM Smith\'s data estate moves to Databricks. Sam flagged this as the architecture flexibility Jeremy wished they\'d had more time to design around.',tags:[['good','Semantic Layer serves Genie natively'],['good','No vendor lock-in on semantic layer'],['neutral','Databricks EDW migration ongoing']]}
+};
+
+function setArchMode(mode) {
+  document.querySelectorAll('.arch-current').forEach(function(el){el.style.display=mode==='current'?'':'none';});
+  document.querySelectorAll('.arch-target').forEach(function(el){el.style.display=mode==='target'?'':'none';});
+  var cur = document.getElementById('mode-current');
+  var tgt = document.getElementById('mode-target');
+  if(mode==='current'){
+    cur.style.cssText='font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:none;background:#FF694A;color:#fff;cursor:pointer;';
+    tgt.style.cssText='font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:0.5px solid #c8d5e0;background:transparent;color:#6b8099;cursor:pointer;';
+  } else {
+    tgt.style.cssText='font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:none;background:#FF694A;color:#fff;cursor:pointer;';
+    cur.style.cssText='font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:0.5px solid #c8d5e0;background:transparent;color:#6b8099;cursor:pointer;';
+  }
+  document.getElementById('arch-detail').style.display='none';
+}
+
+function showArchPanel(id) {
+  var p = archPanels[id]; if(!p) return;
+  document.getElementById('arch-dp-dot').style.background = p.color;
+  document.getElementById('arch-dp-title').textContent = p.title;
+  document.getElementById('arch-dp-body').textContent = p.body;
+  var te = document.getElementById('arch-dp-tags'); te.innerHTML='';
+  p.tags.forEach(function(t){
+    var s=document.createElement('span');
+    var typeMap={pain:'background:#fef2f2;color:#991b1b;border:0.5px solid #fecaca;',good:'background:#f0fdf4;color:#14532d;border:0.5px solid #bbf7d0;',neutral:'background:#f4f7fa;color:#6b8099;border:0.5px solid #c8d5e0;'};
+    s.style.cssText='font-size:11px;padding:3px 8px;border-radius:4px;font-weight:500;'+(typeMap[t[0]]||typeMap.neutral);
+    s.textContent=t[1];te.appendChild(s);
+  });
+  document.getElementById('arch-detail').style.display='block';
+}
+</script>
+
+</body>
+</html>
